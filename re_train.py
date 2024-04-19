@@ -13,8 +13,8 @@ if __name__ == "__main__":
     print(rel_2_index)
 
     batch_size = 16
-    epoch = 10
-    max_len =30
+    epoch = 5
+    max_len = 200
     lr = 0.00005
     lstm_hidden = 128
     num = int(len(train_label) / batch_size)
@@ -41,7 +41,7 @@ if __name__ == "__main__":
         for batch_text_index, batch_label_index, batch_rel_index, batch_pos, label_len in train_dataloader:
             batch_text_index = batch_text_index.to(device)
             batch_label_index = batch_label_index.to(device)
-            batch_rel_index=batch_rel_index.to(device)
+            batch_rel_index = batch_rel_index.to(device)
             loss = model.forward(batch_text_index, batch_pos, batch_rel_index)
             loss.backward()
 
@@ -50,15 +50,15 @@ if __name__ == "__main__":
             count += 1
             print(f"loss:{loss:.2f}  {count}/{num}")
 
+
         model.eval()
         all_entity_pre = []
         all_rel_tag = []
         all_rel_pre = []
         for batch_text_index, batch_label_index, batch_rel_index, batch_pos, label_len in train_dataloader:
-
             batch_text_index = batch_text_index.to(device)
             batch_label_index = batch_label_index.to(device)
-            batch_rel_index=batch_rel_index.to(device)
+            batch_rel_index = batch_rel_index.to(device)
             pre_re = model.forward(batch_text_index, batch_pos)
 
             pre_re = pre_re.cpu().numpy().tolist()
@@ -68,7 +68,8 @@ if __name__ == "__main__":
             all_rel_tag.extend(rel_tag)
             all_rel_pre.extend(pre_re)
 
-        ac=accuracy_score(all_rel_tag,all_rel_pre)
+
+        ac = accuracy_score(all_rel_tag, all_rel_pre)
         print(f'accuracy_score:{ac}')
         score = f1_score(all_rel_tag, all_rel_pre, average='macro')
         if score > best_score:

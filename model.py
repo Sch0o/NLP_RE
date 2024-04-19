@@ -7,10 +7,12 @@ from transformers import BertModel
 import torch
 import torch.nn as nn
 from transformers import AdamW
-from seqeval.metrics import accuracy_score
-from seqeval.metrics import f1_score
-from seqeval.metrics import precision_score
-from seqeval.metrics import recall_score
+# from seqeval.metrics import accuracy_score
+# from seqeval.metrics import f1_score
+# from seqeval.metrics import precision_score
+# from seqeval.metrics import recall_score
+from sklearn.metrics import f1_score
+from sklearn.metrics import accuracy_score
 from torchcrf import CRF
 
 
@@ -51,7 +53,31 @@ def build_label(train_label):  # 所有标签
         for l in label:
             if l not in label_2_index:
                 label_2_index[l] = len(label_2_index)
+    index_to_label=list(label_2_index)
+    with open('label_list.txt','w')as file:
+        file.write('\n'.join(index_to_label))
     return label_2_index, list(label_2_index)
+
+def build_rel(train_rel):
+    rel_2_index = {}
+    for rel in train_rel:
+        if rel not in rel_2_index:
+            rel_2_index[rel] = len(rel_2_index)
+    index_2_rel=list(rel_2_index)
+    with open('rel_list.txt','w')as file:
+        file.write('\n'.join(index_2_rel))
+    return rel_2_index, list(rel_2_index)
+
+def read_label_txt(file):
+    index_to_label=[]
+    with open(file,'r') as file:
+        for line in file:
+            index_to_label.append(line.strip())
+    label_2_index={}
+    for label in index_to_label:
+        label_2_index[label]=len(label_2_index)
+
+    return label_2_index,index_to_label
 
 
 def to_onehot(label_2_index, all_rel):
@@ -60,29 +86,26 @@ def to_onehot(label_2_index, all_rel):
     return onehot
 
 
-def build_rel(train_rel):
-    rel_2_index = {}
-    for rel in train_rel:
-        if rel not in rel_2_index:
-            rel_2_index[rel] = len(rel_2_index)
-    return rel_2_index, list(rel_2_index)
 
-def find_entity(pre,sentence):
-    entitys=[]
-    pos=[]
-    entity=""
+
+
+def find_entity(pre, sentence):
+    entitys = []
+    pos = []
+    entity = ""
     for i in range(len(pre)):
-        if 'B'==pre[i][0] :
-            entity=entity+sentence[i]
-        elif 'I'==pre[i][0] and entity!='':
-            entity=entity+sentence[i]
-        elif 'E'==pre[i][0] and entity!='':
-            entity=entity+sentence[i]
+        if 'B' == pre[i][0]:
+            entity = entity + sentence[i]
+        elif 'I' == pre[i][0] and entity != '':
+            entity = entity + sentence[i]
+        elif 'E' == pre[i][0] and entity != '':
+            entity = entity + sentence[i]
             if entity not in entitys:
                 entitys.append(entity)
-                pos.append([i-len(entity)+1,i])
-                entity=""
-    return entitys,pos
+                pos.append([i - len(entity) + 1, i])
+                entity = ""
+    return entitys, pos
+
 
 class BertDataset(Dataset):
     def __init__(self, all_text, all_label, all_rel, all_pos, label_2_index, rel_2_index, tokenizer, max_len,
@@ -171,7 +194,6 @@ class BertReModel(nn.Module):
             input.extend([sum(col) / (pos2[1] - pos2[0]) for col in zip(*bert_code[i][pos2[0]:pos2[1]])])
             batch_input.append(input)
         batch_input = torch.tensor(batch_input)
-        # re
         batch_input = batch_input.to(torch.device("cuda"))
         out = torch.relu(self.classifier_re1(batch_input))
         out = self.classifier_re2(out)
